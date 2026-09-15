@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your own AI agent</title>
+<meta name="description" content="A guided walk to your own 24/7 AI helper, one screen at a time, in your words.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..700,50&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f6f1e7; --paper-2:#efe7d8; --ink:#2b2924; --ink-2:#5c5850; --line:#d9cfbc;
+  --sage:#5f7757; --sage-2:#dfe7d6; --clay:#b8603a; --clay-2:#f3dfd3; --gold:#c9a227;
+  --shadow:0 14px 40px -18px rgba(43,41,36,.35);
+  --display:"Fraunces",Georgia,"Times New Roman",serif;
+  --body:"Nunito","Avenir Next","Segoe UI",Helvetica,Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --paper:#1e1c19; --paper-2:#26231f; --ink:#efe8db; --ink-2:#b8b0a1; --line:#3d3830;
+    --sage:#9db892; --sage-2:#2c3529; --clay:#e0865f; --clay-2:#3a2a22; --gold:#d8b64a;
+    --shadow:0 14px 40px -18px rgba(0,0,0,.7); }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:18px;line-height:1.6;min-height:100vh;
+  background-image:radial-gradient(1000px 500px at 5% -10%, var(--sage-2) 0%, transparent 60%),radial-gradient(800px 500px at 110% 20%, var(--clay-2) 0%, transparent 55%)}
+a{color:var(--sage);text-decoration-thickness:1.5px;text-underline-offset:3px}
+h1,h2,h3{font-family:var(--display);font-weight:500;line-height:1.1;letter-spacing:-.01em;margin:0 0 .4em}
+h1{font-size:clamp(2.2rem,7vw,3.8rem);font-variation-settings:"SOFT" 60}
+h2{font-size:clamp(1.6rem,4.5vw,2.3rem)}
+h3{font-size:1.15rem}
+p{margin:.4em 0 1em}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;background:var(--paper-2);padding:.1em .4em;border-radius:6px}
+.wrap{max-width:720px;margin:0 auto;padding:0 20px}
+
+/* progress */
+.top{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--paper) 90%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:12px;padding:10px 20px}
+.top .name{font-family:var(--display);font-style:italic;color:var(--clay);white-space:nowrap}
+.bar{flex:1;height:6px;background:var(--paper-2);border-radius:999px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--sage);transition:width .4s}
+.top .count{font-size:.85rem;color:var(--ink-2);white-space:nowrap}
+.top button{font:inherit;font-size:.85rem;background:none;border:1px solid var(--line);color:var(--ink-2);border-radius:999px;padding:4px 10px;cursor:pointer}
+
+/* screens */
+.screen{display:none;padding:36px 0 30px;animation:up .45s ease both}
+.screen.on{display:block}
+@keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.kicker{font-family:var(--display);font-style:italic;color:var(--clay);margin-bottom:6px}
+.extra{color:var(--ink-2)}
+body.some .extra{display:none}
+body.some .hint{display:none}
+.hint{font-size:.9rem;color:var(--ink-2);border-left:3px solid var(--gold);padding:6px 12px;margin:10px 0;background:var(--paper-2);border-radius:0 8px 8px 0}
+
+/* route gating */
+[data-route]{display:none}
+body.server [data-route="server"]{display:block}
+body.laptop [data-route="laptop"]{display:block}
+body.unsure [data-route="server"],body.unsure [data-route="laptop"]{display:block}
+
+/* diagrams */
+.fig{margin:14px 0 18px;padding:14px;background:var(--paper-2);border:1px solid var(--line);border-radius:16px}
+.fig svg{width:100%;height:auto;display:block}
+.fig figcaption{font-size:.85rem;color:var(--ink-2);margin-top:8px;text-align:center}
+svg text{font-family:var(--body);font-size:13px;fill:var(--ink)}
+svg .box{fill:var(--paper);stroke:var(--ink);stroke-width:1.5}
+svg .soft{fill:var(--sage-2);stroke:var(--sage);stroke-width:1.5}
+svg .warm{fill:var(--clay-2);stroke:var(--clay);stroke-width:1.5}
+svg .arrow{stroke:var(--ink-2);stroke-width:1.5;fill:none;marker-end:url(#ah)}
+svg .dash{stroke-dasharray:4 4}
+svg .small{font-size:11px;fill:var(--ink-2)}
+
+/* glossary terms */
+.t{font:inherit;color:var(--ink);background:none;border:0;padding:0;cursor:pointer;border-bottom:2px dotted var(--sage);border-radius:0}
+.t:hover{background:var(--sage-2)}
+dialog{border:1px solid var(--line);border-radius:18px;background:var(--paper);color:var(--ink);padding:22px 24px;max-width:min(92vw,460px);box-shadow:var(--shadow)}
+dialog::backdrop{background:rgba(0,0,0,.35)}
+dialog h3{margin-bottom:.3em}
+dialog p{margin:0 0 .6em}
+dialog .close{font:inherit;margin-top:6px;background:var(--sage);color:#fff;border:0;border-radius:999px;padding:8px 16px;cursor:pointer}
+
+/* choices */
+.choices{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin:12px 0 18px}
+.choice{text-align:left;font:inherit;border:1.5px solid var(--line);background:var(--paper-2);color:var(--ink);padding:16px 18px;border-radius:16px;cursor:pointer;transition:transform .15s,border-color .2s}
+.choice:hover{transform:translateY(-2px)}
+.choice[aria-pressed="true"]{border-color:var(--sage);outline:3px solid var(--sage-2)}
+.choice b{display:block;font-family:var(--display);font-size:1.15rem;font-weight:500;margin-bottom:3px}
+.choice span{color:var(--ink-2);font-size:.92rem;line-height:1.45;display:block}
+.choice em{display:block;font-style:normal;font-size:.8rem;color:var(--sage);font-weight:700;margin-top:6px}
+.rec{font-size:.8rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--sage);background:var(--sage-2);padding:2px 8px;border-radius:999px;margin-left:6px}
+
+/* blocks */
+.you{margin:12px 0;padding:12px 14px;border-left:3px solid var(--gold);background:var(--paper-2);border-radius:0 10px 10px 0}
+.paste{margin:14px 0;padding:14px 16px;background:var(--ink);color:var(--paper);border-radius:12px;position:relative;font-size:.97rem}
+.paste::before{content:"copy this, paste it in the black window";position:absolute;top:-11px;left:12px;font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;background:var(--gold);color:#2b2924;padding:2px 8px;border-radius:999px;font-weight:700}
+.read{margin-top:16px;font-size:.92rem;color:var(--ink-2);border-top:1px dashed var(--line);padding-top:10px}
+.read b{color:var(--ink)}
+ul,ol{padding-left:1.2em}li{margin:.3em 0}
+.card{background:var(--paper-2);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin:10px 0}
+.card h3{margin-bottom:.2em}
+.card p{margin:0;color:var(--ink-2);font-size:.95rem}
+.note{background:var(--ink);color:var(--paper);border-radius:22px;padding:26px;position:relative;overflow:hidden}
+.note::after{content:"";position:absolute;right:-50px;bottom:-70px;width:220px;height:220px;border-radius:50%;background:var(--clay);opacity:.25}
+.note h2,.note h3{color:var(--paper)}.note a{color:var(--gold)}.note .sig{font-family:var(--display);font-style:italic;color:var(--gold);margin-top:10px}
+
+/* nav */
+.nav{display:flex;gap:10px;justify-content:space-between;align-items:center;padding:8px 0 50px}
+.nav button{font:inherit;font-weight:700;border-radius:999px;padding:12px 22px;cursor:pointer;border:1.5px solid var(--line);background:var(--paper-2);color:var(--ink)}
+.nav .next{background:var(--sage);border-color:var(--sage);color:#fff}
+.nav button:disabled{opacity:.4;cursor:default}
+.toc{list-style:none;padding:0;margin:0;columns:2;gap:16px;font-size:.95rem}
+.toc li{break-inside:avoid;margin:.2em 0}
+.toc button{font:inherit;background:none;border:0;color:var(--sage);cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:3px}
+@media (max-width:520px){.toc{columns:1}}
+</style>
+</head>
+<body class="new unsure">
+
+<div class="top"><div class="wrap">
+  <span class="name">Your own AI agent</span>
+  <div class="bar"><i id="bar"></i></div>
+  <span class="count" id="count"></span>
+  <button type="button" id="restart" title="Start over">start over</button>
+</div></div>
+
+<main class="wrap" id="main">
+
+<!-- 0 welcome -->
+<section class="screen on" id="s0">
+  <div class="kicker">A guide from someone who is not a programmer</div>
+  <h1>Your own AI agent</h1>
+  <p>A helper that never sleeps, remembers things, and texts you on your phone. I built one in April 2026 and people keep asking how. This walk takes about fifteen minutes to read and one evening to do.</p>
+  <p>It changes based on what you tell me, so first, three quick questions. There are no wrong answers.</p>
+  <h3>1. Have you used ChatGPT or Claude?</h3>
+  <div class="choices" data-q="ai">
+    <button class="choice" data-v="never"><b>Never, or barely</b><span>I have heard of it.</span></button>
+    <button class="choice" data-v="some"><b>A few times</b><span>I ask it things now and then.</span></button>
+    <button class="choice" data-v="daily"><b>Most days</b><span>It is part of how I work.</span></button>
+  </div>
+  <h3>2. Do you know what a "server" is?</h3>
+  <div class="choices" data-q="server">
+    <button class="choice" data-v="no"><b>No idea</b><span>Something to do with the internet?</span></button>
+    <button class="choice" data-v="roughly"><b>Roughly</b><span>A computer somewhere that runs things.</span></button>
+    <button class="choice" data-v="yes"><b>Yes</b><span>I could rent one if I had to.</span></button>
+  </div>
+  <h3>3. Would you rather</h3>
+  <div class="choices" data-q="route">
+    <button class="choice" data-v="server"><b>Pay about $20 a month, all in</b><span>and have it run day and night, even while you sleep. About €5 of that is the computer, the rest is the brain.</span></button>
+    <button class="choice" data-v="laptop"><b>Pay nothing</b><span>and have it run only while your laptop is open.</span></button>
+    <button class="choice" data-v="unsure"><b>Not sure yet</b><span>Show me both and tell me what you would do.</span></button>
+  </div>
+</section>
+
+<!-- 1 what you're building -->
+<section class="screen" id="s1">
+  <div class="kicker">First, the picture</div>
+  <h2>What you are building</h2>
+  <p>Three parts. Your phone, a small computer that never turns off, and a folder of text files. The text files are the important part. They say what your helper is called, how it talks, what it may never do, and what it does every morning. You write them in plain English.</p>
+  <p class="extra">Everything else is plumbing. If the small computer breaks, you rent a new one and copy the folder over. Same helper.</p>
+  <figure class="fig"><svg viewBox="0 0 640 220" role="img" aria-label="Phone talks to a small computer that reads a folder of text files">
+    <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-2)"/></marker></defs>
+    <rect class="box" x="20" y="60" width="120" height="100" rx="14"/><text x="80" y="100" text-anchor="middle">your phone</text><text class="small" x="80" y="120" text-anchor="middle">Telegram</text>
+    <path class="arrow" d="M140,100 L240,100"/><path class="arrow" d="M240,120 L140,120"/>
+    <rect class="soft" x="240" y="45" width="160" height="130" rx="14"/><text x="320" y="95" text-anchor="middle">a small computer</text><text class="small" x="320" y="115" text-anchor="middle">never turns off</text><text class="small" x="320" y="135" text-anchor="middle">runs the helper</text>
+    <path class="arrow" d="M400,110 L500,110"/>
+    <rect class="warm" x="500" y="30" width="120" height="160" rx="14"/><text x="560" y="62" text-anchor="middle">a folder</text>
+    <text class="small" x="560" y="90" text-anchor="middle">who it is</text><text class="small" x="560" y="110" text-anchor="middle">how it talks</text><text class="small" x="560" y="130" text-anchor="middle">what it may never do</text><text class="small" x="560" y="150" text-anchor="middle">its morning job</text><text class="small" x="560" y="170" text-anchor="middle">what it remembers</text>
+  </svg><figcaption>The folder is the helper. The rest can be replaced.</figcaption></figure>
+  <p class="hint">Any word with a dotted line under it, like <button class="t" data-t="agent">agent</button>, can be tapped for a one-sentence explanation. Nothing opens in a new page.</p>
+  <div class="read"><b>Read more:</b> Simon Willison's short post <a href="https://simonwillison.net/2025/Sep/18/agents/">"Agents"</a>, the clearest one-paragraph definition I know.</div>
+</section>
+
+
+<!-- 1b worked example -->
+<section class="screen" id="s1b">
+  <div class="kicker">One real example before you build</div>
+  <h2>What mine sent this morning</h2>
+  <p>This is the text my agent sent me today at 7am, with names and links blanked. Read it once. Everything on this page exists to get you to your own version of this.</p>
+  <div class="paste" style="font-size:.95rem;white-space:pre-line">☀️ Mon Sep 14, the brief
+
+📅 16:30 class (room not posted yet, watch the course chat)
+📞 10:00 call with the vendor, you call them, prep notes ready
+⏰ due in 48h: reflection poll for Tuesday's class
+📝 waiting on J.: proposal and pricing, promised Sunday
+📝 waiting on C.: will raise my questions on Monday
+📡 fellowship application opens today
+📡 lunch with faculty advisors, room 319
+📚 prep pack ready for tonight's class
+🩺 all jobs healthy</div>
+  <p>And here is the whole routine that produced it, in the plain words I gave my helper. Five lines. The agent never looks at anything it was not pointed at.</p>
+  <div class="card"><p style="white-space:pre-line;font-family:ui-monospace,Menlo,monospace;font-size:.9rem;color:var(--ink)">## Morning brief
+- When: 7:00, my timezone, every day
+- Do: read my calendar feed, my deadlines file, and my "waiting on" list
+- Send: one Telegram message, one line per item, emoji first, under 15 lines
+- Last step: write today's date to state/last-routine.txt</p></div>
+  <p class="extra">The first version of this, in April, was three lines and read one calendar. The "waiting on" list and the health line came months later, one at a time. Start with three lines.</p>
+  <div class="read"><b>Read more:</b> <a href="recipes.md">eight recipes</a> like this one, each with the sentence to paste and a public repo to borrow from.</div>
+</section>
+
+<!-- 2 words -->
+<section class="screen" id="s2">
+  <div class="kicker">Six words, once</div>
+  <h2>The only words you need</h2>
+  <p>You will meet these six. I will never use one without it being tappable. Read them now or tap them later, either is fine.</p>
+  <div class="card"><h3><button class="t" data-t="agent">Agent</button></h3><p>A chatbot with a clock, a memory, and your phone number. It can wake up on its own and do a job.</p></div>
+  <div class="card" data-route="server"><h3><button class="t" data-t="server">Server</button></h3><p>A computer in someone else's building that never turns off. You rent a small one for about the price of a coffee a month.</p></div>
+  <div class="card"><h3><button class="t" data-t="helper">Your helper (Claude Code or Codex)</button></h3><p>An AI that can use your computer for you. It types the scary commands so you do not have to. You talk to it in plain English.</p></div>
+  <div class="card"><h3><button class="t" data-t="terminal">The black window</button></h3><p>An app already on your Mac called Terminal. It is where your helper lives. You will open it, type one word, and paste sentences. That is all.</p></div>
+  <div class="card"><h3><button class="t" data-t="apikey">The brain key</button></h3><p>A long password from the company that makes the AI brain. Your agent shows it every time it thinks, and each thought costs a fraction of a cent. You set a monthly limit so it can never surprise you.</p></div>
+  <div class="card"><h3><button class="t" data-t="telegram">Telegram bot</button></h3><p>Telegram is a free texting app. A "bot" is a contact in it that your agent answers as. Only you can text it.</p></div>
+  <div class="read"><b>Read more:</b> the <a href="https://docs.openclaw.ai/start/openclaw">official OpenClaw docs</a> use the same words, with more detail, when you are ready.</div>
+</section>
+
+<!-- 3 helper choice -->
+<section class="screen" id="s3">
+  <div class="kicker">Your first choice</div>
+  <h2>Pick your helper</h2>
+  <p>Two AIs can drive your Mac for you. Both work with this guide. You install one from its website, like any app, and then you talk to it in the <button class="t" data-t="terminal">black window</button>.</p>
+  <div class="choices" data-q="helper">
+    <button class="choice" data-v="claude"><b>Claude Code <span class="rec">what I use</span></b><span>From Anthropic. Careful, asks before it does anything risky. Included in the $20 a month Claude Pro plan; you do not need the bigger plan for this.</span><em>Install: claude.com/code</em></button>
+    <button class="choice" data-v="codex"><b>Codex</b><span>From OpenAI. Same idea. Needs a ChatGPT subscription or a brain key.</span><em>Install: chatgpt.com/codex</em></button>
+  </div>
+  <p class="extra">If you already pay for one of them, pick that one. If you pay for neither, Claude Code is the one this guide was tested with.</p>
+  <div class="you"><b>You decide:</b> which one. Then install it and open the black window once to see that it starts. Type <code>claude</code> or <code>codex</code> and press enter. If it greets you, close it and come back.</div>
+  <div class="read"><b>Read more:</b> <a href="https://code.claude.com/docs">Claude Code docs</a> or <a href="https://developers.openai.com/codex">Codex docs</a>. You do not need to read them to continue.</div>
+</section>
+
+<!-- 4 machine -->
+<section class="screen" id="s4">
+  <div class="kicker">Where it lives</div>
+  <h2>A computer that never sleeps</h2>
+  <div data-route="server">
+    <p>You rent a <button class="t" data-t="server">server</button>. It is a small computer in a building full of them, and it stays on for you. Two companies I trust for this, both about the price of a coffee a month.</p>
+    <div class="choices" data-q="host">
+      <button class="choice" data-v="hetzner"><b>Hetzner <span class="rec">cheapest</span></b><span>About €5 to 6 a month. European company. The signup asks for ID once.</span><em>hetzner.com/cloud</em></button>
+      <button class="choice" data-v="do"><b>DigitalOcean</b><span>About $6 a month. Friendlier screens, more English guides.</span><em>digitalocean.com</em></button>
+    </div>
+    <p>Make an account, pick the smallest computer with <button class="t" data-t="ubuntu">Ubuntu</button> on it, and when it asks for an <button class="t" data-t="sshkey">SSH key</button>, ask your helper: "help me make an SSH key for a new server." It will. Write down the address the company gives you. It looks like four numbers with dots.</p>
+    <figure class="fig"><svg viewBox="0 0 640 150" role="img" aria-label="Your Mac holds the only key to the server">
+      <rect class="box" x="30" y="40" width="150" height="80" rx="12"/><text x="105" y="75" text-anchor="middle">your Mac</text><text class="small" x="105" y="95" text-anchor="middle">holds the key</text>
+      <path class="arrow" d="M180,80 L430,80"/><text class="small" x="305" y="70" text-anchor="middle">only this key opens the door</text>
+      <rect class="soft" x="430" y="30" width="180" height="100" rx="12"/><text x="520" y="70" text-anchor="middle">your server</text><text class="small" x="520" y="90" text-anchor="middle">ubuntu, always on</text><text class="small" x="520" y="108" text-anchor="middle">address: 12.34.56.78</text>
+    </svg><figcaption>An SSH key is a door key only your Mac has. No password to guess.</figcaption></figure>
+  </div>
+  <div data-route="laptop">
+    <p>You use your own Mac. Nothing to rent, nothing to pay. The trade: the helper only works while the lid is open. Close it and the helper sleeps too. If your one job is "when I open my laptop, tell me what changed," this is enough. If it must text you at 7 in the morning, it is not.</p>
+    <p class="extra">You can always move to a rented computer later. The folder of files comes with you, and the helper is the same helper.</p>
+    <div class="you"><b>You decide:</b> if you are on the free route, tell your helper "I want to run this on my own Mac, no server" in the next step. It will follow a shorter path.</div>
+  </div>
+  <div data-route="both" class="extra"></div>
+  <div class="read"><b>Read more:</b> the repo's <a href="no-server.md">no-server route</a> explains exactly what you lose and keep.</div>
+</section>
+
+<!-- 5 brain key -->
+<section class="screen" id="s5">
+  <div class="kicker">The thing that costs money</div>
+  <h2>Get a brain key</h2>
+  <p>Your agent needs an AI brain to think with. The company that runs the brain gives you a long password, the <button class="t" data-t="apikey">brain key</button>. Every time your agent thinks, it shows the key, and the company charges a fraction of a cent. That is the whole business model.</p>
+  <figure class="fig"><svg viewBox="0 0 640 160" role="img" aria-label="Each thought costs a fraction of a cent; the monthly cap stops it">
+    <rect class="soft" x="20" y="50" width="150" height="70" rx="12"/><text x="95" y="80" text-anchor="middle">your agent</text><text class="small" x="95" y="100" text-anchor="middle">"let me think..."</text>
+    <path class="arrow" d="M170,85 L300,85"/><text class="small" x="235" y="75" text-anchor="middle">shows the key</text>
+    <rect class="box" x="300" y="40" width="160" height="90" rx="12"/><text x="380" y="75" text-anchor="middle">the AI company</text><text class="small" x="380" y="95" text-anchor="middle">charges ~0.1 cent</text><text class="small" x="380" y="113" text-anchor="middle">per thought</text>
+    <path class="arrow dash" d="M460,85 L540,85"/>
+    <rect class="warm" x="540" y="55" width="90" height="60" rx="12"/><text x="585" y="80" text-anchor="middle">your cap</text><text class="small" x="585" y="100" text-anchor="middle">$20 / month</text>
+  </svg><figcaption>Set the cap before anything else. It cannot spend past it.</figcaption></figure>
+  <div class="choices" data-q="brain">
+    <button class="choice" data-v="anthropic"><b>Anthropic (Claude) <span class="rec">what I use</span></b><span>console.anthropic.com. Make an account, add a card, set a monthly limit, then "Create key."</span></button>
+    <button class="choice" data-v="openai"><b>OpenAI (ChatGPT)</b><span>platform.openai.com. Same steps: card, monthly limit, "Create new secret key."</span></button>
+  </div>
+  <ol>
+    <li>Make the account and add a card.</li>
+    <li>Find "limits" or "budget" and set <b>$20 a month</b>. Do this first.</li>
+    <li>Create a key. Copy it somewhere safe for the next ten minutes. Never paste it into a note, an email, or a chat with anyone. Only into your helper, when it asks.</li>
+  </ol>
+  <p class="extra">The $20 Claude Pro plan includes Claude Code, and your helper and your chats share one usage allowance, which is plenty for a setup evening. A subscription to ChatGPT or Claude is a different thing from a brain key. The subscription is for you to chat. The key is for your agent to think on its own. You may end up with both.</p>
+  <div class="read"><b>Read more:</b> the repo's <a href="cost.md">cost page</a>, with real monthly numbers and the one setting that makes it ten times more expensive.</div>
+</section>
+
+<!-- 6 telegram -->
+<section class="screen" id="s6">
+  <div class="kicker">Its phone number</div>
+  <h2>Make the Telegram bot</h2>
+  <p>Install <button class="t" data-t="telegram">Telegram</button> on your phone if you do not have it. Then, inside Telegram, find a contact called <b>@BotFather</b>. It is the official place bots are made. Send it the word <code>/newbot</code>. It asks for a name (anything) and a username (must end in "bot"). Then it gives you a long code. That code is a password too. Copy it for your helper.</p>
+  <p>One more: message <b>@userinfobot</b> and it replies with your Telegram user ID, a number like 12345678. It is not your phone number. Your helper needs it so only you can talk to your agent.</p>
+  <figure class="fig"><svg viewBox="0 0 640 150" role="img" aria-label="Only your Telegram ID can reach the bot">
+    <rect class="box" x="20" y="45" width="130" height="70" rx="12"/><text x="85" y="75" text-anchor="middle">you</text><text class="small" x="85" y="95" text-anchor="middle">ID 12345678</text>
+    <path class="arrow" d="M150,80 L290,80"/><text class="small" x="220" y="70" text-anchor="middle">allowed</text>
+    <rect class="soft" x="290" y="35" width="140" height="90" rx="12"/><text x="360" y="70" text-anchor="middle">your bot</text><text class="small" x="360" y="90" text-anchor="middle">answers as</text><text class="small" x="360" y="108" text-anchor="middle">your agent</text>
+    <rect class="warm" x="500" y="45" width="120" height="70" rx="12"/><text x="560" y="75" text-anchor="middle">anyone else</text><text class="small" x="560" y="95" text-anchor="middle">ignored</text>
+    <path class="arrow dash" d="M500,80 L440,80"/>
+  </svg><figcaption>Your helper sets this up so the bot answers one person: you.</figcaption></figure>
+  <div class="you"><b>You decide:</b> the bot's name. Mine is TripBot. Pick something you will not mind seeing at 7am.</div>
+</section>
+
+<!-- 7 build -->
+<section class="screen" id="s7">
+  <div class="kicker">The big step</div>
+  <h2>Let your helper build it</h2>
+  <p>Open the <button class="t" data-t="terminal">black window</button>. Type <code>claude</code> (or <code>codex</code>) and press enter. Then copy the sentence below, paste it, and press enter. Your helper will fetch my files, follow the instructions in them, and stop to ask you for the brain key, the bot code, and your Telegram number when it needs them.</p>
+  <div class="paste" data-route="server">Get github.com/triptikhetan-max/your-own-agent, read SETUP.md, and set me up on my server at ___ (my address). I am new to this, so explain each step in one plain sentence before you do it. Ask me before anything that costs money, needs a password, or opens a door to the internet.</div>
+  <div class="paste" data-route="laptop">Get github.com/triptikhetan-max/your-own-agent, read SETUP.md, and set me up on my own Mac with no server, following docs/no-server.md. I am new to this, so explain each step in one plain sentence before you do it. Ask me before anything that costs money or needs a password.</div>
+  <p>This takes twenty to forty minutes. Most of it is your helper working. It will ask you questions in plain words. Answer them the way you would answer a friend. If you do not understand a question, say "I do not understand, explain it differently." That is a normal thing to say to it.</p>
+  <figure class="fig"><svg viewBox="0 0 640 130" role="img" aria-label="You answer questions; the helper does the typing">
+    <rect class="box" x="20" y="35" width="140" height="60" rx="12"/><text x="90" y="70" text-anchor="middle">you answer</text>
+    <path class="arrow" d="M160,65 L250,65"/>
+    <rect class="soft" x="250" y="25" width="160" height="80" rx="12"/><text x="330" y="58" text-anchor="middle">your helper</text><text class="small" x="330" y="80" text-anchor="middle">types everything</text>
+    <path class="arrow" d="M410,65 L500,65"/>
+    <rect class="warm" x="500" y="35" width="120" height="60" rx="12"/><text x="560" y="70" text-anchor="middle">agent alive</text>
+  </svg><figcaption>You never type a command. You answer questions.</figcaption></figure>
+  <div class="read"><b>If you are curious what it is following:</b> <a href="https://github.com/triptikhetan-max/your-own-agent/blob/main/SETUP.md">SETUP.md</a> is the instruction sheet written for your helper. You can read it; you do not have to.</div>
+</section>
+
+<!-- 8 six files -->
+<section class="screen" id="s8">
+  <div class="kicker">Where it becomes yours</div>
+  <h2>Answer the six questions</h2>
+  <p>Near the end, your helper asks six questions and turns your answers into the six text files. This is the part that makes it your agent and not mine. Think about them now.</p>
+  <div class="card"><h3>What is it called, and what is it like?</h3><p>A name and one line. "Pip. Calm, dry, a little nosy."</p></div>
+  <div class="card"><h3>How should it talk?</h3><p>Three words for its voice, three things it must never sound like. "Short, warm, direct. Never like a press release, never preachy, never fake cheerful."</p></div>
+  <div class="card"><h3>Who are you?</h3><p>Ten lines. Where you are, what you do, how you like to be spoken to, what annoys you.</p></div>
+  <div class="card"><h3>What may it never do?</h3><p>The most important answer. Mine: never delete a file, never message anyone but me, never post anywhere, never touch money.</p></div>
+  <div class="card"><h3>What may it do only if you say yes?</h3><p>Sending anything. Writing outside its own folders. Spending anything.</p></div>
+  <div class="card"><h3>What is its one job, and when?</h3><p>Your one sentence from earlier, plus a time. "Every morning at 7, read my calendar and text me what is due in three days."</p></div>
+  <div class="you"><b>You decide:</b> all six. Keep each short. Long answers make it slower and more expensive, not smarter.</div>
+</section>
+
+<!-- 9 hello -->
+<section class="screen" id="s9">
+  <div class="kicker">The first text</div>
+  <h2>Say hello</h2>
+  <p>Open Telegram, find your bot, and send three messages, one at a time.</p>
+  <ol>
+    <li><b>"Who are you?"</b> It should answer with the name and voice you gave it.</li>
+    <li><b>"What may you never do?"</b> It should recite your never list. If it waffles, tell your helper: "it did not answer from the files."</li>
+    <li><b>"What do you know about me?"</b> It should answer from your ten lines and nothing else.</li>
+  </ol>
+  <p>If all three land, it is alive. Take a screenshot. You built an agent.</p>
+  <p class="extra">If one fails, go back to the black window and describe what happened in plain words. "I asked what it may never do and it gave a generic answer." Your helper will find it.</p>
+</section>
+
+<!-- 10 job + heartbeat -->
+<section class="screen" id="s10">
+  <div class="kicker">The part everyone skips</div>
+  <h2>Its one job, and a pulse</h2>
+  <p>Now your helper sets the alarm clock so the one job runs on its own. And one more thing that sounds boring and matters more than anything on this page: a <button class="t" data-t="heartbeat">heartbeat</button>.</p>
+  <p>Here is why. A job that quietly stops running looks exactly like a job with nothing to say. You would not notice for weeks. So the job's last step is always "write today's date in a small file," and a tiny checker reads that file once a day and texts you only if the date is old.</p>
+  <figure class="fig"><svg viewBox="0 0 640 170" role="img" aria-label="Clock triggers the job, job writes a heartbeat, checker reads it">
+    <rect class="box" x="20" y="55" width="100" height="60" rx="12"/><text x="70" y="90" text-anchor="middle">7:00 am</text>
+    <path class="arrow" d="M120,85 L190,85"/>
+    <rect class="soft" x="190" y="45" width="130" height="80" rx="12"/><text x="255" y="78" text-anchor="middle">the job runs</text><text class="small" x="255" y="98" text-anchor="middle">texts you</text>
+    <path class="arrow" d="M320,85 L390,85"/>
+    <rect class="warm" x="390" y="55" width="110" height="60" rx="12"/><text x="445" y="80" text-anchor="middle">heartbeat</text><text class="small" x="445" y="100" text-anchor="middle">"today's date"</text>
+    <path class="arrow dash" d="M500,85 L560,85"/>
+    <rect class="box" x="560" y="40" width="70" height="90" rx="12"/><text x="595" y="70" text-anchor="middle">checker</text><text class="small" x="595" y="90" text-anchor="middle">old date?</text><text class="small" x="595" y="108" text-anchor="middle">text her</text>
+  </svg><figcaption>No AI in the checker. Ten lines. It cannot be talked out of it.</figcaption></figure>
+  <div class="paste">Set up the routine in ROUTINE.md as a scheduled automation on the cheapest model. Make it write a heartbeat file when it finishes. Install scripts/health-check.sh to run once a day and text me only if something is red. Then run the automation once now so I can see it work.</div>
+  <p class="extra">"Cheap model" matters. The AI companies sell a strong brain and a cheaper, faster one. The alarm-clock jobs only need the cheap one. Chatting can use the strong one.</p>
+  <div class="read"><b>Read more:</b> <a href="lessons.md">the five rules</a> I learned running mine, this is rule three.</div>
+</section>
+
+<!-- 11 lock -->
+<section class="screen" id="s11">
+  <div class="kicker">Five doors</div>
+  <h2>Lock it</h2>
+  <p>Five things actually go wrong with these. Not a hundred. Here they are, each with its lock. Your helper checks all of them when you paste the sentence at the bottom.</p>
+  <figure class="fig"><svg viewBox="0 0 640 210" role="img" aria-label="Five doors around the agent">
+    <rect class="soft" x="245" y="70" width="150" height="70" rx="14"/><text x="320" y="110" text-anchor="middle">your agent</text>
+    <rect class="warm" x="20" y="20" width="150" height="50" rx="10"/><text class="small" x="95" y="41" text-anchor="middle">a page tells it what to do</text><text class="small" x="95" y="58" text-anchor="middle">lock: rules it cannot edit</text>
+    <rect class="warm" x="470" y="20" width="150" height="50" rx="10"/><text class="small" x="545" y="41" text-anchor="middle">front door open to internet</text><text class="small" x="545" y="58" text-anchor="middle">lock: listens only to itself</text>
+    <rect class="warm" x="20" y="140" width="150" height="50" rx="10"/><text class="small" x="95" y="161" text-anchor="middle">a password in a note</text><text class="small" x="95" y="178" text-anchor="middle">lock: keys only in one place</text>
+    <rect class="warm" x="470" y="140" width="150" height="50" rx="10"/><text class="small" x="545" y="161" text-anchor="middle">the bill</text><text class="small" x="545" y="178" text-anchor="middle">lock: cap + cheap brain</text>
+    <rect class="warm" x="245" y="160" width="150" height="40" rx="10"/><text class="small" x="320" y="185" text-anchor="middle">it "tidies" your files · lock: never delete</text>
+    <path class="arrow dash" d="M170,45 L245,80"/><path class="arrow dash" d="M470,45 L395,80"/><path class="arrow dash" d="M170,165 L245,130"/><path class="arrow dash" d="M470,165 L395,130"/>
+  </svg><figcaption>Every lock is a sentence in a file or one setting. None needs you to understand how.</figcaption></figure>
+  <ul>
+    <li><b>It reads a page that tells it what to do.</b> Websites and emails can contain hidden instructions. Lock: a short rules file it is not allowed to change, and no power to do damage.</li>
+    <li><b>Its front door is open to the internet.</b> Lock: it only listens to itself. Your helper checks this.</li>
+    <li><b>A key ends up in a note.</b> Lock: keys live in one place, and the daily checker looks for stray ones.</li>
+    <li><b>The bill.</b> Lock: the cap you already set, and the cheap brain for scheduled jobs.</li>
+    <li><b>It tidies up your files.</b> Lock: "never delete" in its rules. It renames and tells you instead.</li>
+  </ul>
+  <div class="paste">Run the checklist in docs/security.md and show me each item as green or red before fixing anything. Explain each red one in one sentence.</div>
+  <div class="read"><b>Read more:</b> <a href="security.md">the full security page</a>, including the mistakes I made so you do not.</div>
+</section>
+
+<!-- 12 grow -->
+<section class="screen" id="s12">
+  <div class="kicker">After the first week</div>
+  <h2>What it can become</h2>
+  <p>Same skeleton, fed differently. Give it a folder of your notes to read and it starts to feel like a second brain. Pick one direction, run it for a week, then add the next.</p>
+  <div class="choices" data-q="grow">
+    <button class="choice" data-v="brief"><b>Morning brief</b><span>Reads a calendar feed at 7am and texts what is due. My first real job for it.</span></button>
+    <button class="choice" data-v="brain"><b>Second brain</b><span>You text it a thought, it files it in the right note. Needs the Obsidian setup.</span></button>
+    <button class="choice" data-v="study"><b>Study copilot</b><span>Knows your courses, asks what you read, nags the night before.</span></button>
+    <button class="choice" data-v="write"><b>Writing partner</b><span>Drafts in your voice from your notes. You approve every send.</span></button>
+    <button class="choice" data-v="research"><b>Research partner</b><span>Reads what you read, argues back, drops one question a day in your inbox. What mine became.</span></button>
+    <button class="choice" data-v="news"><b>Newsletter reader</b><span>Reads a folder of newsletters nightly and pulls every date into a list.</span></button>
+  </div>
+  <h3>What other people built</h3>
+  <p class="extra">All free, all on GitHub. Every one ended up the same shape: one agent, a folder of text files, a morning routine, a nightly one, and "the agent drafts, the human sends."</p>
+  <div class="card"><h3><a href="https://github.com/bbuch82/agentic-second-brain-guide">Agentic second brain guide</a></h3><p>OpenClaw plus Obsidian, run for a year at about 15 euros a month. The best write-up of health checks I have read.</p></div>
+  <div class="card"><h3><a href="https://github.com/danielmiessler/LifeOS">LifeOS</a></h3><p>One agent with named parts on Claude Code. "Your harness is the engine. LifeOS is everything that makes it your car."</p></div>
+  <div class="card"><h3><a href="https://github.com/eugeniughelbur/obsidian-second-brain">Obsidian second brain</a></h3><p>Four routines over a notes vault: morning, nightly, weekly, health. "Every stored fact must be timeless, dated, or a pointer."</p></div>
+  <div class="card"><h3><a href="https://github.com/smixs/agent-second-brain">Agent second brain</a></h3><p>Claude Code on a $5 server, Telegram, voice first. "You talk, the agent files."</p></div>
+  <div class="card"><h3><a href="https://github.com/davidhariri/life-system">life-system</a></h3><p>No framework at all. Plain files and one Claude Code session that reads your plan before every chat.</p></div>
+  <h3>Not OpenClaw?</h3>
+  <p>OpenClaw is the program I use to run the agent. <a href="https://github.com/NousResearch/hermes-agent">Hermes</a> does the same job, works with more chat apps, and has size limits on its memory files built in. A plain Claude Code session on your Mac also works. The six files are the same in all three. You are not locked in.</p>
+  <div class="read"><b>Read more:</b> <a href="recipes.md">eight recipes</a> with the exact sentence to paste for each, <a href="obsidian.md">giving it a brain</a> (the Obsidian setup), and Anthropic's <a href="https://www.anthropic.com/engineering/building-effective-agents">Building effective agents</a> for when you want to know how the sausage is made.</div>
+</section>
+
+
+<!-- 12b start + never -->
+<section class="screen" id="s12b">
+  <div class="kicker">Two lists to keep</div>
+  <h2>Where to start, and what you never do</h2>
+  <p>How far this goes depends on how much you feed it. Here is the honest ladder. Each rung is a week or two of it running clean before the next.</p>
+  <ol>
+    <li><b>Tonight:</b> it texts you back in its own voice. That is the whole first evening.</li>
+    <li><b>Day 1:</b> one morning job. What is due, or what is in a folder. Read-only.</li>
+    <li><b>Week 2:</b> it reads a folder of your notes and answers from them. This is where it stops feeling like a chatbot.</li>
+    <li><b>Month 1:</b> it drafts things for you. Replies, summaries, posts. You send every one.</li>
+    <li><b>Month 2 and on:</b> you talk to it through the day and it files, reminds, and argues back. Mine is here. It still gets things wrong every day.</li>
+  </ol>
+  <p class="extra">The ceiling: it will not run your life. It saves the ten minutes a day you spend finding dates and the hour a week you spend filing, and it is there at 4am when a thought will not let you sleep.</p>
+  <h3>Things you never do</h3>
+  <ul>
+    <li>Never paste the brain key or the bot code anywhere except into your helper when it asks. Not a note, not an email, not a chat.</li>
+    <li>Never give it your email password, your bank, or your calendar with write access. Add powers one at a time, after a week.</li>
+    <li>Never let it post, send, or reply on its own. It drafts. You send.</li>
+    <li>Never skip the monthly cap on the brain key.</li>
+    <li>Never open its front door to the internet, and never run it as the boss account. Your helper sets both; do not undo them to make an error go away.</li>
+    <li>Never share the folder with anyone. After a month it contains your life.</li>
+    <li>Never believe "done" without looking. It says done when it thinks it is done.</li>
+    <li>Never fix it by pasting commands from a stranger on the internet. Describe the problem to your helper instead.</li>
+  </ul>
+</section>
+
+<!-- 13 note -->
+<section class="screen" id="s13">
+  <div class="note">
+    <h2>A note from me, before you start</h2>
+    <p>I am not IT support. I am a learning designer who got curious. If your agent breaks, I am not going to fix it for you. If a hacker gets in, that is between you and the hacker, and this page told you how to lock the doors.</p>
+    <p>What I can tell you is how I fix mine. I explain the problem to my helper the way I would explain it to a friend. Messy. Typos. A screenshot of the error. "it was working yesterday and now the telegram thing just spins and i didnt change anything i swear." That works better than any command I could give you.</p>
+    <p>If it gets it wrong, I tell it so and try again. It is not a magic wand. It needs to know what you actually want, and that takes a bit of back and forth. Three tries is normal. Ten is a sign to close the laptop and come back tomorrow.</p>
+    <p>Bugs in this guide itself: <a href="https://github.com/triptikhetan-max/your-own-agent/issues">open an issue</a>. I will look when I can.</p>
+    <div class="sig">Tripti</div>
+  </div>
+  <h3 style="margin-top:28px">Readings, if you want to go deeper</h3>
+  <ul>
+    <li><a href="https://simonwillison.net/2025/Sep/18/agents/">Simon Willison, "Agents"</a>. One paragraph that settles what the word means.</li>
+    <li><a href="https://www.anthropic.com/engineering/building-effective-agents">Anthropic, "Building effective agents"</a>. Why simple beats clever.</li>
+    <li><a href="https://docs.openclaw.ai/start/openclaw">OpenClaw docs</a>. Where your helper reads the current commands.</li>
+    <li><a href="https://www.freecodecamp.org/news/how-to-build-and-secure-a-personal-ai-agent-with-openclaw/">freeCodeCamp, build and secure a personal agent</a>. The long, technical version of this page.</li>
+    <li><a href="https://www.lennysnewsletter.com/p/openclaw-the-complete-guide-to-building">Lenny's guide to OpenClaw</a>. For product people.</li>
+    <li>In this repo: <a href="recipes.md">recipes</a>, <a href="cost.md">cost</a>, <a href="security.md">security</a>, <a href="lessons.md">lessons</a>, <a href="obsidian.md">Obsidian</a>, <a href="no-server.md">no server</a>, and the <a href="https://github.com/triptikhetan-max/your-own-agent">whole kit</a>.</li>
+  </ul>
+  <h3>Jump back to any step</h3>
+  <ul class="toc" id="toc"></ul>
+  <p style="font-size:.85rem;color:var(--ink-2);margin-top:24px">Guide: CC BY 4.0. Files and scripts: MIT. Fork it, change everything, keep the credit line.</p>
+</section>
+
+<div class="nav"><button type="button" id="back">Back</button><button type="button" class="next" id="next">Next</button></div>
+</main>
+
+<dialog id="dlg"><h3 id="dlg-t"></h3><p id="dlg-b"></p><button class="close" id="dlg-c" type="button">Got it</button></dialog>
+
+<script>
+(function(){
+  var G={
+    agent:["Agent","A chatbot with a clock, a memory, and your phone number. ChatGPT waits for you. An agent can wake up on its own, do a job, and text you about it."],
+    server:["Server","A computer in someone else's building that never turns off. You rent a small one for about the price of a coffee a month, and your agent lives on it."],
+    helper:["Your helper","Claude Code or Codex. An AI that can use your computer for you. It types the commands so you do not have to. You talk to it in plain English, in the black window."],
+    terminal:["The black window","An app already on your Mac called Terminal. It looks scary. You will open it, type one word, and paste sentences. That is all you ever do in it."],
+    apikey:["Brain key (API key)","A long password from the company that makes the AI brain. Your agent shows it every time it thinks, and each thought costs a fraction of a cent. You set a monthly limit so it can never surprise you. Never paste it anywhere except into your helper when it asks."],
+    telegram:["Telegram bot","Telegram is a free texting app. A bot is a contact inside it that your agent answers as. Your helper sets it so only you can text it."],
+    ubuntu:["Ubuntu","A free operating system for servers, the way macOS is for Macs. Pick it when the rental site asks. Your helper knows what to do with it."],
+    sshkey:["SSH key","A door key only your Mac has. The server opens for that key and nothing else. No password to guess. Your helper makes it for you."],
+    heartbeat:["Heartbeat","A small file where the job writes today's date every time it finishes. A separate checker reads it once a day and texts you only if the date is old. It is how you find out a job quietly stopped."]
+  };
+  var dlg=document.getElementById('dlg');
+  document.querySelectorAll('.t').forEach(function(b){ b.addEventListener('click',function(){
+    var g=G[b.getAttribute('data-t')]; if(!g) return;
+    document.getElementById('dlg-t').textContent=g[0]; document.getElementById('dlg-b').textContent=g[1]; dlg.showModal();
+  });});
+  document.getElementById('dlg-c').addEventListener('click',function(){dlg.close();});
+  dlg.addEventListener('click',function(e){ if(e.target===dlg) dlg.close(); });
+
+  var screens=[].slice.call(document.querySelectorAll('.screen'));
+  var titles=screens.map(function(s){ var h=s.querySelector('h1,h2'); return h?h.textContent:''; });
+  var i=0, ans={};
+  try{ var saved=JSON.parse(localStorage.getItem('yoa2')||'{}'); if(saved.ans) ans=saved.ans; if(typeof saved.i==='number') i=saved.i; }catch(e){}
+
+  function applyProfile(){
+    var body=document.body;
+    body.classList.remove('new','some','server','laptop','unsure');
+    var lvl = (ans.ai==='daily' && ans.server!=='no') ? 'some' : 'new';
+    body.classList.add(lvl);
+    body.classList.add(ans.route||'unsure');
+  }
+  function show(n){
+    i=Math.max(0,Math.min(screens.length-1,n));
+    screens.forEach(function(s,k){ s.classList.toggle('on',k===i); });
+    document.getElementById('bar').style.width=((i)/(screens.length-1)*100)+'%';
+    document.getElementById('count').textContent=(i===0?'start':i+' of '+(screens.length-1));
+    document.getElementById('back').disabled=(i===0);
+    var nx=document.getElementById('next');
+    nx.textContent = i===screens.length-1 ? 'Back to the top' : (i===0 ? 'Start' : 'Next');
+    nx.disabled = (i===0 && !(ans.ai && ans.server && ans.route));
+    window.scrollTo({top:0,behavior:'smooth'});
+    try{ localStorage.setItem('yoa2',JSON.stringify({i:i,ans:ans})); }catch(e){}
+  }
+  document.querySelectorAll('.choices').forEach(function(grp){
+    var q=grp.getAttribute('data-q');
+    grp.querySelectorAll('.choice').forEach(function(c){
+      if(ans[q]===c.getAttribute('data-v')) c.setAttribute('aria-pressed','true');
+      c.addEventListener('click',function(){
+        grp.querySelectorAll('.choice').forEach(function(x){x.setAttribute('aria-pressed','false');});
+        c.setAttribute('aria-pressed','true'); ans[q]=c.getAttribute('data-v'); applyProfile();
+        if(i===0) document.getElementById('next').disabled=!(ans.ai && ans.server && ans.route);
+        try{ localStorage.setItem('yoa2',JSON.stringify({i:i,ans:ans})); }catch(e){}
+      });
+    });
+  });
+  document.getElementById('next').addEventListener('click',function(){ show(i===screens.length-1?0:i+1); });
+  document.getElementById('back').addEventListener('click',function(){ show(i-1); });
+  document.getElementById('restart').addEventListener('click',function(){ ans={}; document.querySelectorAll('.choice').forEach(function(x){x.setAttribute('aria-pressed','false');}); applyProfile(); show(0); });
+  var toc=document.getElementById('toc');
+  titles.forEach(function(t,k){ if(k===0) return; var li=document.createElement('li'); var b=document.createElement('button'); b.type='button'; b.textContent=k+'. '+t; b.addEventListener('click',function(){show(k);}); li.appendChild(b); toc.appendChild(li); });
+  applyProfile(); show(i);
+})();
+</script>
+</body>
+</html>

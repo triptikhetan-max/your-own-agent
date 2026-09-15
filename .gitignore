@@ -1,0 +1,8 @@
+.DS_Store
+*.env
+workspace/state/*
+workspace/inbox/*
+workspace/memory/*
+!workspace/state/.gitkeep
+!workspace/inbox/.gitkeep
+!workspace/memory/.gitkeep
