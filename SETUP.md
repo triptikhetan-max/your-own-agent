@@ -4,6 +4,8 @@ This file is written for a coding agent (Claude Code, Codex, or similar). A huma
 
 ## Your contract
 
+0. **Getting this repo does not need git.** If it is not on disk yet, download https://github.com/triptikhetan-max/your-own-agent/archive/refs/heads/main.zip with `curl -L` and unzip it into `~/your-own-agent`. Do not install git or Xcode tools for this.
+
 1. **Read the live docs first.** Fetch https://docs.openclaw.ai for the current install command, config file location, and CLI. Never trust an install command written in this repo or in your memory. OpenClaw releases monthly and commands change.
 2. **Stop and ask before** spending money, entering any password or API key, opening any port to the internet, installing anything the OpenClaw docs do not mention, or deleting anything.
 3. **Secrets never travel through this chat.** The API key and the bot token go into one root-only env file on the server, and the human types them there. Your job is to prepare the file and print the one line the human runs in a second terminal window (use `read -s` so nothing is echoed). If the human insists on pasting a secret into the chat, write it straight to that file, confirm, and tell them to start a new chat afterward. Never put a secret in any file under `workspace/`, in a shell script, in a crontab, or in a message you send back.

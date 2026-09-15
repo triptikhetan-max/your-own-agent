@@ -16,14 +16,14 @@ This is not a product. It is a starting point. You set it up in one evening, giv
 ## What you need
 
 - A Mac. Windows works through WSL, but I have not tested it.
-- Claude Code or Codex installed on that Mac. This is the one technical thing you do yourself, and it is one command from their website. Claude Code is included in the $20 a month Claude Pro plan; you do not need the bigger plan.
+- Claude Code or Codex on that Mac. Easiest: the [Claude desktop app](https://claude.ai/download), sign in with your Claude account, open the Code tab. That tab is the "black window" everywhere this guide says black window. Or, in Terminal, one line: `curl -fsSL https://claude.ai/install.sh | bash`, then type `claude` and sign in through the browser. Claude Code is included in the $20 a month Claude Pro plan. For Codex, install the [Codex app](https://developers.openai.com/codex/app). Never used a terminal? Anthropic has a [two-minute terminal guide](https://code.claude.com/docs/en/terminal-guide).
 - A Telegram account.
 - A card for a server (about €5 to 6 a month) and an API key from Anthropic or OpenAI. Or skip the server: see [docs/no-server.md](docs/no-server.md).
 - One to three hours.
 
 ## How this guide works
 
-You type exactly one line into the terminal, in step 3, to start the coding agent. After that, the coding agent types everything. Every step below has two parts: a prompt you paste into Claude Code or Codex, and a decision only you can make.
+You type one word into the terminal, in step 3, to start the coding agent (or click the Code tab in the desktop app). After that, the coding agent types everything. You do not need git or anything else installed. Every step below has two parts: a prompt you paste into Claude Code or Codex, and a decision only you can make.
 
 The coding agent reads [SETUP.md](SETUP.md) in this repo and the live OpenClaw documentation, so the install commands in your setup never go stale. This repo tells the coding agent *what* a good setup looks like and where it must stop and ask you. The docs tell it *how*, today.
 
@@ -65,15 +65,11 @@ Also send `/start` to @userinfobot and note your numeric Telegram ID. The coding
 
 ### 3. Let the coding agent set up the server
 
-Open Terminal, go to a folder where you keep projects, and get this repo:
+Open Terminal and type `claude` (or `codex`), then press enter. Or open the Code tab in the Claude desktop app and pick any empty folder. Then paste:
 
-```bash
-git clone https://github.com/triptikhetan-max/your-own-agent.git && cd your-own-agent && claude
-```
+> Download https://github.com/triptikhetan-max/your-own-agent/archive/refs/heads/main.zip into a new folder called your-own-agent in my home folder and unzip it. Then read SETUP.md in it and set me up. My server address is ___ and my SSH key is at ___. I am new to this, so explain each step in one plain sentence before you do it. Ask me before anything that costs money, needs a password, or opens a port to the internet.
 
-(Use `codex` instead of `claude` if you are using Codex.) Then paste:
-
-> Read SETUP.md and set me up. My server IP is ___ and my SSH key is at ___. Ask me before anything that costs money, needs a password, or opens a port to the internet.
+No git needed. The coding agent downloads the zip with tools every Mac already has.
 
 The coding agent will install OpenClaw on the server as a normal user, not root, and lock the gateway to the server itself. For the two secrets (your API key and your bot token) it will not ask you to paste them into the chat. It prepares a locked file on the server and gives you one line to run in a second terminal window, where you type the key yourself and nothing is shown on screen. That keeps the secrets out of the chat history.
 
