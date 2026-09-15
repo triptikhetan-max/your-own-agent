@@ -9,7 +9,7 @@ red=0
 say() { printf '%s %s\n' "$1" "$2"; }
 
 # 1. gateway process
-if pgrep -f "openclaw" >/dev/null 2>&1; then say GREEN "gateway process running"; else say RED "gateway process not running"; red=1; fi
+if pgrep -f "openclaw.*gateway" >/dev/null 2>&1 || (command -v openclaw >/dev/null 2>&1 && openclaw status >/dev/null 2>&1); then say GREEN "gateway process running"; else say RED "gateway process not running"; red=1; fi
 
 # 2. gateway listens on loopback only (port from OPENCLAW_GATEWAY_PORT, default 18789)
 PORT="${OPENCLAW_GATEWAY_PORT:-18789}"

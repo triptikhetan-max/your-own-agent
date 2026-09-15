@@ -59,7 +59,7 @@ If you would rather not pay, or your job only needs to run while your laptop is 
 
 Your decision: the bot's name.
 
-On your phone, open Telegram and message @BotFather. Send `/newbot`, give it a name and a username, and copy the token it gives you. That token is a password. Only paste it into the coding agent when it asks for it in step 3.
+On your phone, open Telegram and message @BotFather. Send `/newbot`, give it a name and a username, and copy the token it gives you. That token is a password. In step 3 the coding agent will give you a one-line command to type it into a locked file on the server; do not paste it into the chat.
 
 Also send `/start` to @userinfobot and note your numeric Telegram ID. The coding agent will allowlist that ID and nothing else, so no one but you can talk to your agent.
 
@@ -75,7 +75,7 @@ git clone https://github.com/triptikhetan-max/your-own-agent.git && cd your-own-
 
 > Read SETUP.md and set me up. My server IP is ___ and my SSH key is at ___. Ask me before anything that costs money, needs a password, or opens a port to the internet.
 
-The coding agent will install OpenClaw on the server as a normal user, not root, lock the gateway to the server itself, and stop to ask you for the two things it cannot make: your API key and your Telegram bot token. Give it the API key when it asks. It will put the key where OpenClaw expects it and nowhere else.
+The coding agent will install OpenClaw on the server as a normal user, not root, and lock the gateway to the server itself. For the two secrets (your API key and your bot token) it will not ask you to paste them into the chat. It prepares a locked file on the server and gives you one line to run in a second terminal window, where you type the key yourself and nothing is shown on screen. That keeps the secrets out of the chat history.
 
 ### 4. Fill the six files
 
